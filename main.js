@@ -63,3 +63,45 @@ const server = http.createServer(async (req, res) => {
         const statusCode = match[1];
         const filePath = getCacheFilePath(statusCode);
 
+        // Обробка методу GET
+        if (req.method === 'GET') {
+            try {
+                // Спроба прочитати картинку з кешу
+                const cachedImage = await fs.readFile(filePath);
+                res.writeHead(200, {
+                    'Content-Type': 'image/jpeg',
+                    'X-Cache': 'HIT',
+                });
+                res.end(cachedImage);
+                return;
+            } catch (cacheErr) {
+                // Якщо файлу немає в кеші (ENOENT) — робимо запит до http.cat
+                if (cacheErr.code !== 'ENOENT') {
+                    throw cacheErr;
+                }
+            }
+
+            try {
+                const response = await superagent
+                    .get(`https://http.cat/${statusCode}`)
+                    .buffer(true);
+
+                const imageBuffer = response.body;
+
+                // 1. Спочатку зберігаємо картинку в кеш
+                await fs.writeFile(filePath, imageBuffer);
+
+                // 2. Потім пересилаємо клієнтові
+                res.writeHead(200, {
+                    'Content-Type': 'image/jpeg',
+                    'X-Cache': 'MISS',
+                });
+                res.end(imageBuffer);
+            } catch (fetchErr) {
+                // Якщо на http.cat немає картинки або сталася помилка мережі — 404, у кеш не пишемо
+                res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.end(`Картинку для коду ${statusCode} не знайдено ні в кеші, ні на http.cat.\n`);
+            }
+            return;
+        }
+
