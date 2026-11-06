@@ -1,0 +1,21 @@
+node main.js
+
+node main.js -h 127.0.0.1 -p 3000 -c ./cache
+
+curl -i http://127.0.0.1:3000/200 --output ./test_200.jpg -D -
+
+curl -I http://127.0.0.1:3000/200
+
+curl -i http://127.0.0.1:3000/999
+
+curl -i -X PUT http://127.0.0.1:3000/201 --data-binary @./test_200.jpg
+
+curl -I http://127.0.0.1:3000/201
+
+curl -i -X DELETE http://127.0.0.1:3000/201
+
+curl -i -X DELETE http://127.0.0.1:3000/201
+
+curl -i -X POST http://127.0.0.1:3000/200
+
+curl -i http://127.0.0.1:3000/abc
