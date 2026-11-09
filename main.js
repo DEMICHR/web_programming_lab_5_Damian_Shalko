@@ -37,7 +37,7 @@ function getCacheFilePath(code) {
     return path.join(cacheDir, `${code}.jpg`);
 }
 
-// Допоміжна функція для читання двійкового тіла запиту через проміси (for await...of)
+// Допоміжна функція для читання двійкового тіла запиту через проміси
 async function readRequestBody(req) {
     const chunks = [];
     for await (const chunk of req) {
@@ -46,7 +46,7 @@ async function readRequestBody(req) {
     return Buffer.concat(chunks);
 }
 
-// 3. Створення HTTP-сервера (єдиний дозволений колбек — async-обробник запиту)
+// 3. Створення HTTP-сервера
 const server = http.createServer(async (req, res) => {
     try {
         // Виділяємо шлях без query-параметрів (наприклад, "/200" -> "200")
@@ -138,3 +138,21 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // Будь-який інший метод HTTP — 405 Method Not Allowed
+        res.writeHead(405, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Allow': 'GET, PUT, DELETE',
+        });
+        res.end(`Метод ${req.method} не дозволений. Дозволені методи: GET, PUT, DELETE.\n`);
+    } catch (internalErr) {
+        console.error('Внутрішня помилка сервера:', internalErr);
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Внутрішня помилка сервера.\n');
+    }
+});
+
+// 4. Запуск сервера через проміс once() без використання колбеків
+server.listen(options.port, options.host);
+await once(server, 'listening');
+console.log(`Кешуючий проксі-сервер запущено на http://${options.host}:${options.port}`);
+console.log(`Тека кешу: ${cacheDir}`);
